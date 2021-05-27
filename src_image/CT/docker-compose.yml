@@ -1,0 +1,14 @@
+version: "3"
+services:
+  validation:
+    build: ./Validation
+    volumes:
+      - "./${OUTPUT}:/app/volume"
+
+
+  train:
+    build: ./Train
+    depends_on:
+      - validation
+    volumes:
+      - "./${OUTPUT}:/app/volume"
