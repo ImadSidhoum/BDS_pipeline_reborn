@@ -6,9 +6,9 @@ services:
       - "./${OUTPUT}:/app/volume"
 
 
-  train:
-    build: ./Train
-    depends_on:
-      - validation
-    volumes:
-      - "./${OUTPUT}:/app/volume"
+  # train:
+  #   build: ./Train
+  #   depends_on:
+  #     - validation
+  #   volumes:
+  #     - "./${OUTPUT}:/app/volume"

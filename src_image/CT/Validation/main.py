@@ -5,7 +5,7 @@ from tensorflow.keras.applications.vgg16 import VGG16
 
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
-from keras.models import Model
+from tensorflow.keras.models import Model
 import json
 
 datagen = ImageDataGenerator(preprocessing_function = preprocess_input)

@@ -1,66 +1,65 @@
 import tensorflow as tf
-import numpy as np
-import sys
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import mlflow.tensorflow
 
 mlflow.set_tracking_uri("sqlite:///mlruns.db")
 mlflow.tensorflow.autolog()
 # mlflow ui --backend-store-uri sqlite:///mlruns.db
 
-(x_train, y_train), (x_test, y_test) = tf.keras.datasets.fashion_mnist.load_data()
+datagen = ImageDataGenerator(rescale=1./255)
 
-x_train = x_train.astype('float32') / 255
-x_test = x_test.astype('float32') / 255
+train_generator = datagen.flow_from_directory(
+    directory= "data",
+    target_size=(150, 150),
+    color_mode="rgb",
+    batch_size=32,
+    class_mode='binary',
+    shuffle=True,
+)
 
-(x_train, x_valid) = x_train[500:700], x_train[400:500]
-(y_train, y_valid) = y_train[500:700], y_train[400:500]
+test_generator = datagen.flow_from_directory(
+    directory= "data",
+    target_size=(150, 150),
+    color_mode="rgb",
+    batch_size=32,
+    class_mode='binary',
+    shuffle=True,
+)
 
-# Reshape input data from (28, 28) to (28, 28, 1)
-w, h = 28, 28
-x_train = x_train.reshape(x_train.shape[0], w, h, 1)
-x_valid = x_valid.reshape(x_valid.shape[0], w, h, 1)
-x_test = x_test.reshape(x_test.shape[0], w, h, 1)
 
-# One-hot encode the labels
-y_train = tf.keras.utils.to_categorical(y_train, 10)
-y_valid = tf.keras.utils.to_categorical(y_valid, 10)
-y_test = tf.keras.utils.to_categorical(y_test, 10)
+model = tf.keras.models.Sequential([
+    # Note the input shape is the desired size of the image 150x150 with 3 bytes color
+    tf.keras.layers.Conv2D(16, (3,3), activation='relu', input_shape=(150, 150, 3)),
+    tf.keras.layers.MaxPooling2D(2,2),
+    tf.keras.layers.Conv2D(32, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2), 
+    tf.keras.layers.Conv2D(64, (3,3), activation='relu'), 
+    tf.keras.layers.MaxPooling2D(2,2),
+    # Flatten the results to feed into a DNN
+    tf.keras.layers.Flatten(), 
+    # 512 neuron hidden layer
+    tf.keras.layers.Dense(512, activation='relu'), 
+    # Only 1 output neuron. It will contain a value from 0-1 where 0 for 1 class ('cats') and 1 for the other ('dogs')
+    tf.keras.layers.Dense(1, activation='sigmoid')  
+])
 
-# Print training set shape
-print("x_train shape:", x_train.shape, "y_train shape:", y_train.shape)
-
-model = tf.keras.Sequential()
-
-# Must define the input shape in the first layer of the neural network
-model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=2, padding='same', activation='relu', input_shape=(28,28,1)))
-model.add(tf.keras.layers.MaxPooling2D(pool_size=2))
-model.add(tf.keras.layers.Dropout(0.3))
-
-model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=2, padding='same', activation='relu'))
-model.add(tf.keras.layers.MaxPooling2D(pool_size=2))
-model.add(tf.keras.layers.Dropout(0.3))
-
-model.add(tf.keras.layers.Flatten())
-model.add(tf.keras.layers.Dense(256, activation='relu'))
-model.add(tf.keras.layers.Dropout(0.5))
-model.add(tf.keras.layers.Dense(10, activation='softmax'))
-
-# Take a look at the model summary
-model.summary()
-
-model.compile(loss='categorical_crossentropy',
+model.compile(loss='binary_crossentropy',
              optimizer='adam',
              metrics=['accuracy'])
+
+# from tensorflow.keras.optimizers import RMSprop
+
+# model.compile(optimizer=RMSprop(lr=0.001),
+#               loss='binary_crossentropy',
+#               metrics = ['accuracy'])
 
 with mlflow.start_run() as run:
     run_uuid = run.info.run_uuid
     print("MLflow Run ID: %s" % run_uuid)
-    model.fit(x_train,
-             y_train,
-             batch_size=64,
-             epochs=1,
-             validation_data=(x_valid, y_valid))
-    results = model.evaluate(x_test,y_test,batch_size=128)
+    model.fit(train_generator,
+             epochs=10,
+             validation_data=test_generator)
+    results = model.evaluate(test_generator,batch_size=128)
     mlflow.log_metric("test_loss", results[0])
     mlflow.log_metric("test_accuracy", results[1])
 print("test loss, test acc:", results)
