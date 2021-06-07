@@ -2,5 +2,6 @@ numpy
 uvicorn
 fastapi
 pydantic
-mlflow
+mlflow==1.17.0
 tensorflow
+starlette_exporter
