@@ -15,9 +15,9 @@ test_generator = datagen.flow_from_directory(
 )
 
 #print(test_generator[0][0][0:2].shape)
-images = test_generator[0][0][0:2].tolist()
-print(test_generator[0][0][0:2].shape)
-print(test_generator[0][1][0:2])
+images = test_generator[0][0][0:9].tolist()
+print(test_generator[0][0][0:9].shape)
+print(test_generator[0][1][0:9])
 
 
 # images = np.random.randint(0, 1, size=(10,150, 150, 3)).tolist()

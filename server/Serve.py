@@ -19,7 +19,7 @@ mlflow.set_tracking_uri("sqlite:///mlruns.db")
 app.add_middleware(PrometheusMiddleware)
 app.add_route("/metrics", handle_metrics)
 histogram_inference_time = prom.Histogram('Inference_time', 'This is inference time')
-histogram_class_prediction = prom.Histogram('api_label_pred', 'None')
+histogram_class_prediction = prom.Histogram('my_api_label_pred', 'None', buckets={0,1})
 count_class_prediction = prom.Counter('api_label_pred_number', 'None count')
 
 app.add_middleware(
@@ -40,9 +40,10 @@ async def index():
     return "Server Up"
 
 def count_pred_label(y):
-    size_y = y.shape[-1]
+    # size_y = y.shape[-1]
     # list_count_label = np.zeros(size_y+1 if size_y==1 else size_y)
-    class_y = np.argmax(y, axis=-1)
+    class_y = y>0.5#np.argmax(y, axis=-1)
+    print(class_y)
     for i in range(class_y.shape[0]):
         # list_count_label[class_y[i]] +=1
         histogram_class_prediction.observe(class_y[i])
@@ -58,6 +59,7 @@ async def predict(name, item:Item):
     y = model.predict(data)
     histogram_inference_time.observe(time.time()- start_timer)
     count_class_prediction.inc(data.shape[0])
+    count_pred_label(y)
     return y.tolist()
     # except:
     #     print('404: Model not found.')
